@@ -4,9 +4,9 @@
             <div v-if="loading === true" class="text-xs-center pa-4">
                 <v-progress-circular :size="50" color="accent" indeterminate></v-progress-circular>
             </div>
-            <v-alert type="info" outlined v-if="offline === true">
+            <p v-if="online === false">
                 You are offline.
-            </v-alert>
+            </p>
             <v-subheader inset>
                 <div v-if="filter !== ''">Documents ({{ filtered.length }} results)</div>
                 <div v-if="filter === ''">Documents</div>
@@ -15,28 +15,34 @@
                 <v-list two-line subheader>
                     <v-slide-y-transition class="py-0" group>
                         <v-list-tile v-for="item in filtered" :key="item.name" avatar v-ripple @click="openAsContent(item)">
-                            <v-list-tile-avatar color="indigo darken-2"><v-icon large dark>book</v-icon></v-list-tile-avatar>
+                            <v-list-tile-avatar color="teal darken-2"><v-icon large dark>book</v-icon></v-list-tile-avatar>
                             <v-list-tile-content>
                                 <v-list-tile-title>{{ item.name }}</v-list-tile-title>
-                                <v-list-tile-sub-title>Last updated %1s</v-list-tile-sub-title>
+                                <v-list-tile-sub-title>Last updated {{ item.date }}</v-list-tile-sub-title>
                             </v-list-tile-content>
                         </v-list-tile>
                     </v-slide-y-transition>
                 </v-list>
             </v-card>
+            <div class="text-xs-center pa-4">
+                <span v-if="online === true"><v-icon color="green darken-2">signal_wifi_4_bar</v-icon>Connected</span>
+                <span v-if="online === false"><v-icon color="red darken-2">signal_wifi_off</v-icon>Offline</span>
+            </div>
         </v-flex>
     </v-layout>
 </template>
 <script>
 
 import axios from "axios";
+import ping from "web-pingjs";
+import moment from "moment-timezone";
 
 export default {
     name: 'List',
     data() {
         return {
             loading: false,
-            offline: true,
+            online: true,
             items: [],
             filtered: [],
             filter: '',
@@ -48,6 +54,7 @@ export default {
             this.filtered = this.items;
         },
         downloadResource(uri) {
+            console.log(`Downloading resources from ${uri}`);
             let that = this;
             let name = uri.split("/").pop();
             axios({
@@ -65,10 +72,10 @@ export default {
             console.log(`Opening item: ${item.name}, ${item.data}`);
             let b = new Blob([item.data], {type: "application/pdf"});
             const data = window.URL.createObjectURL(b);
-            const link = document.createElement('a');
+            let link = document.createElement('a');
             link.href = data;
             // TODO open in new window instead of downloading
-            link.setAttribute('download', item.name);
+            link.download = item.name;
             link.click();
             setTimeout(function() {
                 window.URL.revokeObjectURL(data);
@@ -77,11 +84,14 @@ export default {
         loadOfflineResources() {
             this.loading = true;
             let that = this;
+            // TODO make sure that TZ is local, it would alwasy default to UTC for me - django
+            let tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
             this.$iterateStorage(function (value, key, i) {
                 console.log([key, value]);
                 that.items.push({
                     name: key,
-                    data: value
+                    data: value,
+                    date: moment().tz(tz).format('MMM Do YY, h:mm') // Use the current time
                 });
             }, err => {
                 if(!err) {
@@ -93,11 +103,26 @@ export default {
         createInitResources() {
             this.$setItem('book1', 'test.pdf');
 
+            let that = this;
+            ping('https://google.com').then(r => {
+                console.log("Established connection to google, we must have internet!");
+                if(navigator.onLine)
+                    that.online = true;
+                else
+                    that.online = false;
+            }).catch(err => {
+                console.log("Failed to connect to google");
+                console.log(err);
+                that.online = false;
+            });
+
             this.loadOfflineResources();
         }
     },
     created() {
         this.filterItems();
+
+        this.online = navigator.onLine;
 
         // this.$setStorageDriver(localforage.INDEXEDDB);
         this.downloadResource("http://s2.q4cdn.com/235752014/files/doc_downloads/test.pdf");
