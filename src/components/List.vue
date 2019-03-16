@@ -15,7 +15,8 @@
                 <v-list two-line subheader>
                     <v-slide-y-transition class="py-0" group>
                         <v-list-tile v-for="item in filtered" :key="item.name" avatar v-ripple @click="openAsContent(item)">
-                            <v-list-tile-avatar color="teal darken-2"><v-icon large dark>book</v-icon></v-list-tile-avatar>
+                            <v-list-tile-avatar color="teal darken-2" v-if="item.loaded === true"><v-icon large dark>book</v-icon></v-list-tile-avatar>
+                            <v-list-tile-avatar color="red darken-2" v-if="item.loaded !== true"><v-icon large dark>warning</v-icon></v-list-tile-avatar>
                             <v-list-tile-content>
                                 <v-list-tile-title>{{ item.name }}</v-list-tile-title>
                                 <v-list-tile-sub-title>Last updated {{ item.date }}</v-list-tile-sub-title>
@@ -25,8 +26,8 @@
                 </v-list>
             </v-card>
             <div class="text-xs-center pa-4">
-                <span v-if="online === true"><v-icon color="green darken-2">signal_wifi_4_bar</v-icon>Connected</span>
-                <span v-if="online === false"><v-icon color="red darken-2">signal_wifi_off</v-icon>Offline</span>
+                <span v-if="online === true" color="grey darken-1"><v-icon color="green darken-2">signal_wifi_4_bar</v-icon>Connected</span>
+                <span v-if="online === false" color="grey darken-1"><v-icon color="red darken-2">signal_wifi_off</v-icon>Offline</span>
             </div>
         </v-flex>
     </v-layout>
@@ -61,14 +62,23 @@ export default {
                 url: uri,
                 method: 'GET',
                 responseType: 'blob',
+                headers: {
+                    'Content-Type': 'application/pdf'
+                }
             }).then(r => {
                 this.$setItem(name, r.data);
                 console.log(name);
             }).catch(err => {
+                if(this.$getItem(name) !== null && this.$getItem(name) !== 'no-content')
+                    this.$setItem(name, 'no-content');
                 console.log(err);
             });
         },
         openAsContent(item) {
+            if(item.loaded === false) {
+                console.log("Trying to open invalid item, returning");
+                return;
+            }
             console.log(`Opening item: ${item.name}, ${item.data}`);
             let b = new Blob([item.data], {type: "application/pdf"});
             const data = window.URL.createObjectURL(b);
@@ -88,9 +98,12 @@ export default {
             let tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
             this.$iterateStorage(function (value, key, i) {
                 console.log([key, value]);
+                let valid = true;
+                if(value === 'no-content') valid = false;
                 that.items.push({
                     name: key,
                     data: value,
+                    loaded: valid,
                     date: moment().tz(tz).format('MMM Do YY, h:mm') // Use the current time
                 });
             }, err => {
@@ -101,8 +114,6 @@ export default {
             this.loading = false;
         },
         createInitResources() {
-            this.$setItem('book1', 'test.pdf');
-
             let that = this;
             ping('https://google.com').then(r => {
                 console.log("Established connection to google, we must have internet!");
@@ -126,6 +137,7 @@ export default {
 
         // this.$setStorageDriver(localforage.INDEXEDDB);
         this.downloadResource("http://s2.q4cdn.com/235752014/files/doc_downloads/test.pdf");
+        this.downloadResource("https://www.act.org/content/dam/act/unsecured/documents/Preparing-for-the-ACT.pdf"); // 64 pages
         this.createInitResources();
     }
 };
