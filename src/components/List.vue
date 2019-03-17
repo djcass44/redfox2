@@ -26,15 +26,13 @@
                 </v-list>
             </v-card>
             <Network @setNetwork="setNetwork"></Network>
-            <v-card v-if="devMode === true" class="m2-card">
-                <p class="text-xs-center pa-2">You are in developer mode</p>
-                <v-btn @click="this.$clearStorage">Reset Storage</v-btn>
-            </v-card>
+            <Dev></Dev>
         </v-flex>
     </v-layout>
 </template>
 <script>
 import Network from "./Network.vue";
+import Dev from "./Dev.vue";
 
 import axios from "axios";
 import moment from "moment-timezone";
@@ -42,7 +40,8 @@ import moment from "moment-timezone";
 export default {
     name: 'List',
     components: {
-        Network
+        Network,
+        Dev
     },
     data() {
         return {
