@@ -4,9 +4,7 @@
             <div v-if="loading > 0" class="text-xs-center pa-4">
                 <v-progress-circular :size="50" color="accent" indeterminate></v-progress-circular>
             </div>
-            <p v-if="online === false" class="text-xs-center pa-4">
-                You are offline.
-            </p>
+            <v-alert :value="online === false" color="info" icon="info" outline>You are offline.</v-alert>
             <v-subheader inset>
                 <div v-if="filter !== ''">Documents ({{ filtered.length }} results)</div>
                 <div v-if="filter === ''">Documents</div>
@@ -77,7 +75,6 @@ export default {
                 that.$setItem(name, r.data);
                 console.log(`Downloaded resource: ${name}`);
                 that.loading--;
-                that.loadOfflineResources();
             }).catch(err => {
                 // 'no-content' is arbitrary, but no proper PDF will only contain it
                 if(that.$getItem(name) !== null && that.$getItem(name) !== 'no-content')
@@ -85,7 +82,6 @@ export default {
                 console.log(`Failed to load: ${name}, will set as 'no-content'`);
                 console.log(err);
                 that.loading --;
-                that.loadOfflineResources();
             });
         },
         openAsContent(item) {

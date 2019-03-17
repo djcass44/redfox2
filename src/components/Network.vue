@@ -33,7 +33,7 @@ export default {
             setTimeout(function() {
                 that.loading = false;
             }, 300);
-            that.$emit('setNetwork', true); // Tell other components internet is available
+            that.$emit('setNetwork', that.online); // Tell other components internet is available
         }).catch(err => {
             console.log("Failed to connect to google");
             console.log(err);
@@ -41,7 +41,7 @@ export default {
             setTimeout(function() {
                 that.loading = false;
             }, 300);
-            that.$emit('setNetwork', false); // Tell other components we are offline
+            that.$emit('setNetwork', that.online); // Tell other components we are offline
         });
     }
 };
