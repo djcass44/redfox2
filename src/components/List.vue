@@ -29,6 +29,10 @@
                 <span v-if="online === true" color="grey darken-1"><v-icon color="green darken-2">signal_wifi_4_bar</v-icon>Connected</span>
                 <span v-if="online === false" color="grey darken-1"><v-icon color="red darken-2">signal_wifi_off</v-icon>Offline</span>
             </div>
+            <v-card v-if="devMode === true" class="m2-card">
+                <p class="text-xs-center pa-2">You are in developer mode</p>
+                <v-btn @click="this.$clearStorage">Reset Storage</v-btn>
+            </v-card>
         </v-flex>
     </v-layout>
 </template>
@@ -42,6 +46,7 @@ export default {
     name: 'List',
     data() {
         return {
+            devMode: false,
             loading: 0,
             online: true,
             items: [],
@@ -68,13 +73,16 @@ export default {
                 }
             }).then(r => {
                 that.$setItem(name, r.data);
-                console.log(name);
+                console.log(`Downloaded resource: ${name}`);
                 that.loading--;
+                that.loadOfflineResources();
             }).catch(err => {
                 if(that.$getItem(name) !== null && that.$getItem(name) !== 'no-content')
                     that.$setItem(name, 'no-content');
+                console.log(`Failed to load: ${name}, will set as 'no-content'`);
                 console.log(err);
                 that.loading --;
+                that.loadOfflineResources();
             });
         },
         openAsContent(item) {
@@ -96,8 +104,9 @@ export default {
         },
         loadOfflineResources() {
             this.loading ++;
+            this.items = [];
             let that = this;
-            // TODO make sure that TZ is local, it would alwasy default to UTC for me - django
+            // TODO make sure that TZ is local, it would always default to UTC for me - django
             let tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
             this.$iterateStorage(function (value, key, i) {
                 console.log([key, value]);
@@ -114,6 +123,7 @@ export default {
                     console.log("Iteration has completed!");
                 }
             });
+            this.filterItems();
             this.loading --;
         },
         createInitResources() {
@@ -126,17 +136,20 @@ export default {
                 else
                     that.online = false;
                 that.loading --;
+                that.loadOfflineResources();
             }).catch(err => {
                 console.log("Failed to connect to google");
                 console.log(err);
                 that.online = false;
                 that.loading --;
+                that.loadOfflineResources();
             });
-
-            this.loadOfflineResources();
         }
     },
     created() {
+        if(process.env.NODE_ENV === "development")
+            this.devMode = true;
+
         this.filterItems();
 
         this.online = navigator.onLine;
