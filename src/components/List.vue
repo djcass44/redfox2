@@ -45,7 +45,6 @@ export default {
     },
     data() {
         return {
-            devMode: false,
             loading: 0,
             online: true,
             items: [],
@@ -132,9 +131,6 @@ export default {
         }
     },
     created() {
-        if(process.env.NODE_ENV === "development")
-            this.devMode = true;
-
         this.filterItems();
 
         this.online = navigator.onLine;
