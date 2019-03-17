@@ -1,10 +1,10 @@
 <template>
     <v-layout>
         <v-flex xs12 sm6 offset-sm3>
-            <div v-if="loading === true" class="text-xs-center pa-4">
+            <div v-if="loading > 0" class="text-xs-center pa-4">
                 <v-progress-circular :size="50" color="accent" indeterminate></v-progress-circular>
             </div>
-            <p v-if="online === false">
+            <p v-if="online === false" class="text-xs-center pa-4">
                 You are offline.
             </p>
             <v-subheader inset>
@@ -15,8 +15,8 @@
                 <v-list two-line subheader>
                     <v-slide-y-transition class="py-0" group>
                         <v-list-tile v-for="item in filtered" :key="item.name" avatar v-ripple @click="openAsContent(item)">
-                            <v-list-tile-avatar color="teal darken-2" v-if="item.loaded === true"><v-icon large dark>book</v-icon></v-list-tile-avatar>
-                            <v-list-tile-avatar color="red darken-2" v-if="item.loaded !== true"><v-icon large dark>warning</v-icon></v-list-tile-avatar>
+                            <v-list-tile-avatar color="teal darken-2" v-if="item.loaded === true"><v-icon dark>book</v-icon></v-list-tile-avatar>
+                            <v-list-tile-avatar color="red darken-2" v-if="item.loaded !== true"><v-icon dark>cloud_off</v-icon></v-list-tile-avatar>
                             <v-list-tile-content>
                                 <v-list-tile-title>{{ item.name }}</v-list-tile-title>
                                 <v-list-tile-sub-title>Last updated {{ item.date }}</v-list-tile-sub-title>
@@ -25,7 +25,7 @@
                     </v-slide-y-transition>
                 </v-list>
             </v-card>
-            <div class="text-xs-center pa-4">
+            <div class="text-xs-center pa-4" v-if="loading === 0">
                 <span v-if="online === true" color="grey darken-1"><v-icon color="green darken-2">signal_wifi_4_bar</v-icon>Connected</span>
                 <span v-if="online === false" color="grey darken-1"><v-icon color="red darken-2">signal_wifi_off</v-icon>Offline</span>
             </div>
@@ -42,7 +42,7 @@ export default {
     name: 'List',
     data() {
         return {
-            loading: false,
+            loading: 0,
             online: true,
             items: [],
             filtered: [],
@@ -56,8 +56,9 @@ export default {
         },
         downloadResource(uri) {
             console.log(`Downloading resources from ${uri}`);
+            this.loading ++;
             let that = this;
-            let name = uri.split("/").pop();
+            let name = uri.split("/").pop(); // Get the filename
             axios({
                 url: uri,
                 method: 'GET',
@@ -66,12 +67,14 @@ export default {
                     'Content-Type': 'application/pdf'
                 }
             }).then(r => {
-                this.$setItem(name, r.data);
+                that.$setItem(name, r.data);
                 console.log(name);
+                that.loading--;
             }).catch(err => {
-                if(this.$getItem(name) !== null && this.$getItem(name) !== 'no-content')
-                    this.$setItem(name, 'no-content');
+                if(that.$getItem(name) !== null && that.$getItem(name) !== 'no-content')
+                    that.$setItem(name, 'no-content');
                 console.log(err);
+                that.loading --;
             });
         },
         openAsContent(item) {
@@ -89,10 +92,10 @@ export default {
             link.click();
             setTimeout(function() {
                 window.URL.revokeObjectURL(data);
-            }, 100); // Require by Firefox
+            }, 100); // Required by Firefox
         },
         loadOfflineResources() {
-            this.loading = true;
+            this.loading ++;
             let that = this;
             // TODO make sure that TZ is local, it would alwasy default to UTC for me - django
             let tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -111,20 +114,23 @@ export default {
                     console.log("Iteration has completed!");
                 }
             });
-            this.loading = false;
+            this.loading --;
         },
         createInitResources() {
             let that = this;
+            that.loading ++;
             ping('https://google.com').then(r => {
                 console.log("Established connection to google, we must have internet!");
                 if(navigator.onLine)
                     that.online = true;
                 else
                     that.online = false;
+                that.loading --;
             }).catch(err => {
                 console.log("Failed to connect to google");
                 console.log(err);
                 that.online = false;
+                that.loading --;
             });
 
             this.loadOfflineResources();
