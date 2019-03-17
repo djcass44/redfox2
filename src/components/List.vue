@@ -25,10 +25,7 @@
                     </v-slide-y-transition>
                 </v-list>
             </v-card>
-            <div class="text-xs-center pa-4" v-if="loading === 0">
-                <span v-if="online === true" color="grey darken-1"><v-icon color="green darken-2">signal_wifi_4_bar</v-icon>Connected</span>
-                <span v-if="online === false" color="grey darken-1"><v-icon color="red darken-2">signal_wifi_off</v-icon>Offline</span>
-            </div>
+            <Network @setNetwork="setNetwork"></Network>
             <v-card v-if="devMode === true" class="m2-card">
                 <p class="text-xs-center pa-2">You are in developer mode</p>
                 <v-btn @click="this.$clearStorage">Reset Storage</v-btn>
@@ -37,13 +34,16 @@
     </v-layout>
 </template>
 <script>
+import Network from "./Network.vue";
 
 import axios from "axios";
-import ping from "web-pingjs";
 import moment from "moment-timezone";
 
 export default {
     name: 'List',
+    components: {
+        Network
+    },
     data() {
         return {
             devMode: false,
@@ -55,6 +55,10 @@ export default {
         }
     },
     methods: {
+        setNetwork(online) {
+            this.online = online;
+            this.loadOfflineResources(); // Load items when network connectivity is known
+        },
         filterItems() {
             // TODO do actual search stuff
             this.filtered = this.items;
@@ -77,6 +81,7 @@ export default {
                 that.loading--;
                 that.loadOfflineResources();
             }).catch(err => {
+                // 'no-content' is arbitrary, but no proper PDF will only contain it
                 if(that.$getItem(name) !== null && that.$getItem(name) !== 'no-content')
                     that.$setItem(name, 'no-content');
                 console.log(`Failed to load: ${name}, will set as 'no-content'`);
@@ -125,25 +130,6 @@ export default {
             });
             this.filterItems();
             this.loading --;
-        },
-        createInitResources() {
-            let that = this;
-            that.loading ++;
-            ping('https://google.com').then(r => {
-                console.log("Established connection to google, we must have internet!");
-                if(navigator.onLine)
-                    that.online = true;
-                else
-                    that.online = false;
-                that.loading --;
-                that.loadOfflineResources();
-            }).catch(err => {
-                console.log("Failed to connect to google");
-                console.log(err);
-                that.online = false;
-                that.loading --;
-                that.loadOfflineResources();
-            });
         }
     },
     created() {
@@ -157,7 +143,6 @@ export default {
         // this.$setStorageDriver(localforage.INDEXEDDB);
         this.downloadResource("http://s2.q4cdn.com/235752014/files/doc_downloads/test.pdf");
         this.downloadResource("https://www.act.org/content/dam/act/unsecured/documents/Preparing-for-the-ACT.pdf"); // 64 pages
-        this.createInitResources();
     }
 };
 </script>
