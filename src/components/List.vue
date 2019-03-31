@@ -103,6 +103,9 @@ export default {
                 });
             }
         },
+        /* This is the important part and also the most broken 
+        https://stackoverflow.com/questions/24485077/how-to-open-blob-url-on-chrome-ios
+        */
         openAsContent(item) {
             if(item.loaded === false) {
                 console.log("Trying to open invalid item, returning");
@@ -111,14 +114,11 @@ export default {
             console.log(`Opening item: ${item.name}, ${item.data}`);
             let b = new Blob([item.data], {type: "application/pdf"});
             const data = window.URL.createObjectURL(b);
-            let link = document.createElement('a');
-            link.href = data;
-            // TODO open in new window instead of downloading
-            link.download = item.name;
-            link.click();
-            setTimeout(function() {
-                window.URL.revokeObjectURL(data);
-            }, 100); // Required by Firefox
+            let reader = new FileReader();
+            reader.onloadend = r => {
+                window.open(reader.result);
+            }
+            reader.readAsDataURL(b);
         },
         loadOnceDone() {
             if(this.loading === 0) {
