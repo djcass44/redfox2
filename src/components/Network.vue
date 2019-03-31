@@ -5,7 +5,7 @@
                 <v-progress-circular :size="50" color="accent" indeterminate></v-progress-circular>
             </div>
             <div class="text-xs-center pa-4" v-if="loading === false">
-                <span v-if="online === true" color="grey darken-1"><v-icon color="green darken-2">signal_wifi_4_bar</v-icon>Connected</span>
+                <!-- <span v-if="online === true" color="grey darken-1"><v-icon color="green darken-2">signal_wifi_4_bar</v-icon>Connected</span> -->
                 <span v-if="online === false" color="grey darken-1"><v-icon color="red darken-2">signal_wifi_off</v-icon>Offline</span>
             </div>
         </v-flex>

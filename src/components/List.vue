@@ -37,7 +37,10 @@
                 </v-list>
             </v-card>
             <Network @setNetwork="setNetwork"></Network>
-            <Dev></Dev>
+            <div class="text-xs-center">
+                <v-btn icon ripple @click="dev2 = !dev2"><v-icon>adb</v-icon></v-btn>
+            </div>
+            <Dev v-if="dev2 === true"></Dev>
         </v-flex>
     </v-layout>
 </template>
@@ -48,6 +51,8 @@ import Dev from "./Dev.vue";
 import axios from "axios";
 import moment from "moment-timezone";
 
+import { VALUE_NO_CONTENT } from "../var.js";
+
 export default {
     name: 'List',
     components: {
@@ -56,6 +61,7 @@ export default {
     },
     data() {
         return {
+            dev2: false,
             loading: 0,
             online: true,
             items: [],
@@ -80,6 +86,14 @@ export default {
                 let uri = items[i];
                 console.log(`Downloading resources from ${uri}, [${i}/${items.length}]`);
                 let name = uri.split("/").pop(); // Get the filename
+                let val = that.$getItem(name);
+                // TODO fix type always being 'object'
+                console.log(`contents: [type: ${typeof val}, data: ${val}]`);
+                if(typeof val === "string" && val !== null && val !== VALUE_NO_CONTENT) {
+                    console.log(`Found existing item: ${name}, value: ${val}`);
+                    that.loading --;
+                    continue;
+                }
                 axios({
                     url: uri,
                     method: 'GET',
@@ -88,22 +102,27 @@ export default {
                         'Content-Type': 'application/pdf'
                     }
                 }).then(r => {
-                    that.$setItem(name, r.data);
+                    let reader = new FileReader();
+                    reader.onloadend = () => {
+                        let data = reader.result;
+                        that.$setItem(name, data);
+                    }
+                    reader.readAsDataURL(r.data);
                     console.log(`Downloaded resource: ${name}`);
                     that.loading--;
                     that.updated = true;
                 }).catch(err => {
                     // 'no-content' is arbitrary, but no proper PDF will only contain it
-                    if(that.$getItem(name) !== null && that.$getItem(name) !== 'no-content')
-                        that.$setItem(name, 'no-content');
-                    console.log(`Failed to load: ${name}, will set as 'no-content'`);
+                    if(that.$getItem(name) !== null && that.$getItem(name) !== VALUE_NO_CONTENT)
+                        that.$setItem(name, VALUE_NO_CONTENT);
+                    console.log(`Failed to load: ${name}, will set as VALUE_NO_CONTENT`);
                     console.log(err);
                     that.loading --;
                     that.updated = true;
                 });
             }
         },
-        /* This is the important part and also the most broken 
+        /* This is the important part and also the most broken
         https://stackoverflow.com/questions/24485077/how-to-open-blob-url-on-chrome-ios
         */
         openAsContent(item) {
@@ -146,10 +165,11 @@ export default {
             this.$iterateStorage(function (value, key, i) {
                 console.log([key, value]);
                 let valid = true;
-                if(value === 'no-content') valid = false;
+                if(value === VALUE_NO_CONTENT) valid = false;
+                let blob = that.dataURItoBlob(value);
                 that.items.push({
                     name: key,
-                    data: value,
+                    data: blob,
                     loaded: valid,
                     date: moment().tz(tz).format('MMM Do YY, h:mm') // Use the current time
                 });
@@ -161,6 +181,27 @@ export default {
             this.updated = false;
             this.filterItems();
             this.loading --;
+        },
+        dataURItoBlob: function(dataURI) {
+            console.log(`data: ${dataURI}`);
+            if(dataURI === VALUE_NO_CONTENT) return dataURI;
+            // convert base64 to raw binary data held in a string
+            // doesn't handle URLEncoded DataURIs - see SO answer #6850276 for code that does this
+            var byteString = atob(dataURI.split(',')[1]);
+
+            // separate out the mime component
+            var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0]
+
+            // write the bytes of the string to an ArrayBuffer
+            var ab = new ArrayBuffer(byteString.length);
+            var ia = new Uint8Array(ab);
+            for (var i = 0; i < byteString.length; i++) {
+                ia[i] = byteString.charCodeAt(i);
+            }
+
+            // write the ArrayBuffer to a blob, and you're done
+            var bb = new Blob([ab]);
+            return bb;
         }
     },
     created() {
