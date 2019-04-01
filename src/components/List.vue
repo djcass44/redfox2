@@ -86,39 +86,38 @@ export default {
                 let uri = items[i];
                 console.log(`Downloading resources from ${uri}, [${i}/${items.length}]`);
                 let name = uri.split("/").pop(); // Get the filename
-                let val = that.$getItem(name);
-                // TODO fix type always being 'object'
-                console.log(`contents: [type: ${typeof val}, data: ${val}]`);
-                if(typeof val === "string" && val !== null && val !== VALUE_NO_CONTENT) {
-                    console.log(`Found existing item: ${name}, value: ${val}`);
-                    that.loading --;
-                    continue;
-                }
-                axios({
-                    url: uri,
-                    method: 'GET',
-                    responseType: 'blob',
-                    headers: {
-                        'Content-Type': 'application/pdf'
+                that.$getItem(name).then((val) => {
+                    if(typeof val === "string" && val.includes("application/pdf")) {
+                        console.log(`Found existing item: ${name}`);
+                        that.loading --;
+                        return;
                     }
-                }).then(r => {
-                    let reader = new FileReader();
-                    reader.onloadend = () => {
-                        let data = reader.result;
-                        that.$setItem(name, data);
-                    }
-                    reader.readAsDataURL(r.data);
-                    console.log(`Downloaded resource: ${name}`);
-                    that.loading--;
-                    that.updated = true;
-                }).catch(err => {
-                    // 'no-content' is arbitrary, but no proper PDF will only contain it
-                    if(that.$getItem(name) !== null && that.$getItem(name) !== VALUE_NO_CONTENT)
-                        that.$setItem(name, VALUE_NO_CONTENT);
-                    console.log(`Failed to load: ${name}, will set as VALUE_NO_CONTENT`);
-                    console.log(err);
-                    that.loading --;
-                    that.updated = true;
+                    axios({
+                        url: uri,
+                        method: 'GET',
+                        responseType: 'blob',
+                        headers: {
+                            'Content-Type': 'application/pdf'
+                        }
+                    }).then(r => {
+                        let reader = new FileReader();
+                        reader.onloadend = () => {
+                            let data = reader.result;
+                            that.$setItem(name, data.toString());
+                        }
+                        reader.readAsDataURL(r.data);
+                        console.log(`Downloaded resource: ${name}`);
+                        that.loading--;
+                        that.updated = true;
+                    }).catch(err => {
+                        // 'no-content' is arbitrary, but no proper PDF will only contain it
+                        if(that.$getItem(name) !== null && that.$getItem(name) !== VALUE_NO_CONTENT)
+                            that.$setItem(name, VALUE_NO_CONTENT);
+                        console.log(`Failed to load: ${name}, will set as VALUE_NO_CONTENT`);
+                        console.log(err);
+                        that.loading --;
+                        that.updated = true;
+                    });
                 });
             }
         },
@@ -163,7 +162,6 @@ export default {
             // TODO make sure that TZ is local, it would always default to UTC for me - django
             let tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
             this.$iterateStorage(function (value, key, i) {
-                console.log([key, value]);
                 let valid = true;
                 if(value === VALUE_NO_CONTENT) valid = false;
                 let blob = that.dataURItoBlob(value);
@@ -183,7 +181,6 @@ export default {
             this.loading --;
         },
         dataURItoBlob: function(dataURI) {
-            console.log(`data: ${dataURI}`);
             if(dataURI === VALUE_NO_CONTENT) return dataURI;
             // convert base64 to raw binary data held in a string
             // doesn't handle URLEncoded DataURIs - see SO answer #6850276 for code that does this
