@@ -22,15 +22,16 @@
             <v-card v-if="filtered.length > 0" class="m2-card">
                 <v-list two-line subheader>
                     <v-slide-y-transition class="py-0" group>
-                        <v-list-tile v-for="item in filtered" :key="item.name" avatar @click="">
-                            <v-list-tile-avatar color="primary" v-if="item.loaded === true"><v-icon dark>book</v-icon></v-list-tile-avatar>
-                            <v-list-tile-avatar color="accent" v-if="item.loaded !== true"><v-icon dark>cloud_off</v-icon></v-list-tile-avatar>
+                        <v-list-tile v-for="item in filtered" :key="item.name" avatar @click="" :color="getCardColour(item)">
+                            <!-- <v-list-tile-avatar color="primary" v-if="item.loaded === true"><v-icon dark>book</v-icon></v-list-tile-avatar>
+                            <v-list-tile-avatar color="accent" v-if="item.loaded !== true"><v-icon dark>error</v-icon></v-list-tile-avatar> -->
                             <v-list-tile-content>
                                 <v-list-tile-title>{{ item.name }}</v-list-tile-title>
                                 <v-list-tile-sub-title>Last updated {{ item.date }}</v-list-tile-sub-title>
                             </v-list-tile-content>
-                            <v-list-tile-action v-if="item.loaded === true">
-                                <v-btn icon ripple @click="openAsContent(item)"><v-icon>cloud_download</v-icon></v-btn>
+                            <v-list-tile-action>
+                                <v-btn icon ripple @click="openAsContent(item)" v-if="item.loaded === true"><v-icon color="primary darken-2">visibility</v-icon></v-btn>
+                                <v-btn icon ripple @click="showHelp" v-else><v-icon color="accent darken-2">info</v-icon></v-btn>
                             </v-list-tile-action>
                         </v-list-tile>
                     </v-slide-y-transition>
@@ -71,6 +72,13 @@ export default {
         }
     },
     methods: {
+        showHelp() {
+            this.$emit('showHelp');
+        },
+        getCardColour(item) {
+            if(item.loaded === true) return "black";
+            else return "accent darken-2";
+        },
         setNetwork(online) {
             this.online = online;
             this.loadOfflineResources(); // Load items when network connectivity is known

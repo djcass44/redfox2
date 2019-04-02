@@ -9,7 +9,8 @@
         @showAbout="showAbout">
     </Drawer>
     <v-content>
-      <List v-if="state === 0"></List>
+      <List v-if="state === 0"
+        @showHelp="showHelp"></List>
       <Help v-else-if="state === 1"
         @showList="showList"></Help>
       <About v-else-if="state === 2"
