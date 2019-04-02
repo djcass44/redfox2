@@ -23,8 +23,8 @@
                 <v-list two-line subheader>
                     <v-slide-y-transition class="py-0" group>
                         <v-list-tile v-for="item in filtered" :key="item.name" avatar @click="">
-                            <v-list-tile-avatar color="primary darken-2" v-if="item.loaded === true"><v-icon dark>book</v-icon></v-list-tile-avatar>
-                            <v-list-tile-avatar color="accent darken-2" v-if="item.loaded !== true"><v-icon dark>cloud_off</v-icon></v-list-tile-avatar>
+                            <v-list-tile-avatar color="primary" v-if="item.loaded === true"><v-icon dark>book</v-icon></v-list-tile-avatar>
+                            <v-list-tile-avatar color="accent" v-if="item.loaded !== true"><v-icon dark>cloud_off</v-icon></v-list-tile-avatar>
                             <v-list-tile-content>
                                 <v-list-tile-title>{{ item.name }}</v-list-tile-title>
                                 <v-list-tile-sub-title>Last updated {{ item.date }}</v-list-tile-sub-title>

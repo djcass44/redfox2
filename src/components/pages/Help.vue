@@ -7,8 +7,8 @@
             <v-card>
                 <v-card-title primary-title>
                     <div>
-                        <h3 class="headline mb-0">Title</h3>
-                        <div>Content</div>
+                        <h3 class="headline mb-0">Question</h3>
+                        <div>Answer</div>
                     </div>
                 </v-card-title>
             </v-card>
