@@ -15,14 +15,32 @@
                     <v-flex xs2 class="text-xs-right"><v-btn @click="loadOnceDone">Update</v-btn></v-flex>
                 </v-layout>
             </v-alert>
-            <v-subheader inset>
-                <div v-if="filter !== ''">Documents ({{ filtered.length }} results)</div>
-                <div v-if="filter === ''">Documents</div>
-            </v-subheader>
-            <v-card v-if="filtered.length > 0" class="m2-card">
+            <v-subheader inset v-if="loading === 0"><div>Available</div></v-subheader>
+            <v-card v-if="items.length > 0" class="m2-card">
                 <v-list two-line subheader>
                     <v-slide-y-transition class="py-0" group>
-                        <v-list-tile v-for="item in filtered" :key="item.name" avatar @click="" :color="getCardColour(item)">
+                        <v-list-tile v-for="item in items" :key="item.name" avatar @click="" :color="getCardColour(item)">
+                            <!-- <v-list-tile-avatar color="primary" v-if="item.loaded === true"><v-icon dark>book</v-icon></v-list-tile-avatar>
+                            <v-list-tile-avatar color="accent" v-if="item.loaded !== true"><v-icon dark>error</v-icon></v-list-tile-avatar> -->
+                            <v-list-tile-content>
+                                <v-list-tile-title>{{ item.name }}</v-list-tile-title>
+                                <v-list-tile-sub-title>Last updated {{ item.date }}</v-list-tile-sub-title>
+                            </v-list-tile-content>
+                            <v-list-tile-action>
+                                <v-btn icon ripple @click="openAsContent(item)" v-if="item.loaded === true"><v-icon color="primary darken-2">visibility</v-icon></v-btn>
+                                <v-btn icon ripple @click="showHelp" v-else><v-icon color="accent darken-2">info</v-icon></v-btn>
+                            </v-list-tile-action>
+                        </v-list-tile>
+                    </v-slide-y-transition>
+                </v-list>
+            </v-card>
+            <v-subheader inset v-if="badItems.length > 0 && loading === 0"><div>Unavailable</div></v-subheader>
+            <!-- This should exactly match the above block -->
+            <!-- TODO move this into a subcomponent -->
+            <v-card v-if="badItems.length > 0" class="m2-card">
+                <v-list two-line subheader>
+                    <v-slide-y-transition class="py-0" group>
+                        <v-list-tile v-for="item in badItems" :key="item.name" avatar @click="" :color="getCardColour(item)">
                             <!-- <v-list-tile-avatar color="primary" v-if="item.loaded === true"><v-icon dark>book</v-icon></v-list-tile-avatar>
                             <v-list-tile-avatar color="accent" v-if="item.loaded !== true"><v-icon dark>error</v-icon></v-list-tile-avatar> -->
                             <v-list-tile-content>
@@ -66,8 +84,7 @@ export default {
             loading: 0,
             online: true,
             items: [],
-            filtered: [],
-            filter: '',
+            badItems: [],
             updated: true
         }
     },
@@ -82,10 +99,6 @@ export default {
         setNetwork(online) {
             this.online = online;
             this.loadOfflineResources(); // Load items when network connectivity is known
-        },
-        filterItems() {
-            // TODO do actual search stuff
-            this.filtered = this.items;
         },
         downloadResource(items) {
             let that = this;
@@ -173,19 +186,24 @@ export default {
                 let valid = true;
                 if(value === VALUE_NO_CONTENT) valid = false;
                 let blob = that.dataURItoBlob(value);
-                that.items.push({
+                let item = {
                     name: key,
                     data: blob,
                     loaded: valid,
                     date: moment().tz(tz).format('MMM Do YY, h:mm') // Use the current time
-                });
+                };
+                if(valid === true) {
+                    that.items.push(item);
+                }
+                else {
+                    that.badItems.push(item);
+                }
             }, err => {
                 if(!err) {
                     console.log("Iteration has completed!");
                 }
             });
             this.updated = false;
-            this.filterItems();
             this.loading --;
         },
         dataURItoBlob: function(dataURI) {
@@ -210,10 +228,8 @@ export default {
         }
     },
     created() {
-        this.filterItems();
-
         this.online = navigator.onLine;
-
+        // TODO check S3 for files to download
         // this.$setStorageDriver(localforage.INDEXEDDB);
         this.downloadResource(["http://s2.q4cdn.com/235752014/files/doc_downloads/test.pdf", "https://www.act.org/content/dam/act/unsecured/documents/Preparing-for-the-ACT.pdf"]);
     }
