@@ -10,8 +10,10 @@
     </Drawer>
     <v-content>
       <List v-if="state === 0"></List>
-      <Help v-else-if="state === 1"></Help>
-      <About v-else-if="state === 2"></About>
+      <Help v-else-if="state === 1"
+        @showList="showList"></Help>
+      <About v-else-if="state === 2"
+        @showList="showList"></About>
       <NotFound v-else></NotFound>
     </v-content>
   </v-app>
