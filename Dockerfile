@@ -1,5 +1,5 @@
 FROM alpine:3.9
-LABEL maintainer="dj.cass44@gmail.com"
+LABEL maintainer="Django Cass <dj.cass44@gmail.com>"
 
 # Import the require OS dependencies
 RUN apk add --update nginx nodejs npm
