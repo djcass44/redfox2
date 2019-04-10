@@ -34,6 +34,7 @@
                     </v-slide-y-transition>
                 </v-list>
             </v-card>
+            <p v-if="items.length === 0" class="text-xs-center ma-4 subheading">No documents available.</p>
             <v-subheader inset v-if="badItems.length > 0 && loading === 0"><div>Unavailable</div></v-subheader>
             <!-- This should exactly match the above block -->
             <!-- TODO move this into a subcomponent -->
@@ -56,7 +57,7 @@
                 </v-list>
             </v-card>
             <Network @setNetwork="setNetwork"></Network>
-            <div class="text-xs-center">
+            <div class="text-xs-center" v-if="dev">
                 <v-btn icon ripple @click="dev2 = !dev2"><v-icon>adb</v-icon></v-btn>
             </div>
             <Dev v-if="dev2 === true"></Dev>
@@ -86,6 +87,11 @@ export default {
             items: [],
             badItems: [],
             updated: true
+        }
+    },
+    computed: {
+        dev: function() {
+            return process.env.NODE_ENV === "development"
         }
     },
     methods: {
@@ -231,7 +237,11 @@ export default {
         this.online = navigator.onLine;
         // TODO check S3 for files to download
         // this.$setStorageDriver(localforage.INDEXEDDB);
-        this.downloadResource(["http://s2.q4cdn.com/235752014/files/doc_downloads/test.pdf", "https://www.act.org/content/dam/act/unsecured/documents/Preparing-for-the-ACT.pdf"]);
+        this.downloadResource([
+            "https://s2.q4cdn.com/235752014/files/doc_downloads/test.pdf",
+            "https://www.act.org/content/dam/act/unsecured/documents/Preparing-for-the-ACT.pdf", 
+            "https://upload.wikimedia.org/wikipedia/commons/d/d3/Test.pdf"
+        ]);
     }
 };
 </script>
