@@ -5,7 +5,7 @@
 				<v-progress-circular :size="50" color="accent" indeterminate></v-progress-circular>
 				<p class="pa-2">Loading data...</p>
 			</div>
-			<v-alert :value="online === false" color="warning" icon="warning" outline>
+			<v-alert :value="online === false" type="warning" outline>
 				<p class="headline px-3">You are offline.</p>
 				<p class="px-3">Everything is still available, however in order to get updates &amp; new documents you will need to connect to the internet.</p>
 			</v-alert>
@@ -49,8 +49,7 @@
 								<v-list-tile-sub-title>{{ item.date }}</v-list-tile-sub-title>
 							</v-list-tile-content>
 							<v-list-tile-action>
-								<v-btn icon ripple @click="openAsContent(item)" v-if="item.loaded === true"><v-icon color="primary darken-2">visibility</v-icon></v-btn>
-								<v-btn icon ripple @click="showHelp" v-else><v-icon color="accent darken-2">info</v-icon></v-btn>
+								<v-btn icon ripple @click="showHelp"><v-icon color="accent darken-2">info</v-icon></v-btn>
 							</v-list-tile-action>
 						</v-list-tile>
 					</v-slide-y-transition>
@@ -106,6 +105,10 @@
                 this.online = online;
                 this.loadOfflineResources(); // Load items when network connectivity is known
             },
+			/**
+	         * Attempt to download a number of resources
+			 * Provide an array of urls
+	         */
             downloadResource(items) {
                 let that = this;
                 for(let i = 0; i < items.length; i++) {
@@ -161,20 +164,6 @@
             /* This is the important part and also the most broken
 			https://stackoverflow.com/questions/24485077/how-to-open-blob-url-on-chrome-ios
 			*/
-            openAsContent(item) {
-                if(item.loaded === false) {
-                    console.log("Trying to open invalid item, returning");
-                    return;
-                }
-                console.log(`Opening item: ${item.name}, ${item.data}`);
-                let b = new Blob([item.data], {type: "application/pdf"});
-                const data = window.URL.createObjectURL(b);
-                let reader = new FileReader();
-                reader.onloadend = r => {
-                    window.open(reader.result);
-                };
-                reader.readAsDataURL(b);
-            },
 			openAsContent2(item) {
                 if(item.loaded === false) {
                     console.log("Trying to open invalid item, returning");
@@ -209,6 +198,9 @@
                     reader.readAsDataURL(blob);
                 }
 			},
+            /**
+             * Try to load resources after we have finished any loading
+             */
             loadOnceDone() {
                 if(this.loading === 0) {
                     this.loadOfflineResources();
@@ -219,9 +211,14 @@
                     that.loadOnceDone();
                 }, 100);
             },
+            /**
+             * Load data from LocalStorage
+             * https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage
+             */
             loadOfflineResources() {
                 let that = this;
                 // Make sure we're not loading anything before trying to reload data
+				// This is somewhat redundant if we are using loadOnceDone properly
                 if(this.loading > 0) {
                     setTimeout(() => {
                         that.loadOfflineResources();
@@ -232,7 +229,7 @@
                 this.items = [];
                 // TODO make sure that TZ is local, it would always default to UTC for me - django
                 let tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                this.$iterateStorage(function (value, key, i) {
+                this.$iterateStorage(function (value, key) {
                     let valid = true;
                     let content = value.data;
                     let timestamp = value.timestamp;
@@ -246,6 +243,7 @@
                         loaded: valid,
                         date: date
                     };
+                    // Separate items into groups (loaded vs failed to load)
                     if(valid === true) {
                         that.items.push(item);
                     }
@@ -264,27 +262,25 @@
                 if(dataURI === VALUE_NO_CONTENT) return dataURI;
                 // convert base64 to raw binary data held in a string
                 // doesn't handle URLEncoded DataURIs - see SO answer #6850276 for code that does this
-                var byteString = atob(dataURI.split(',')[1]);
+                let byteString = atob(dataURI.split(',')[1]);
 
                 // separate out the mime component
-                var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0]
+                // let mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
 
                 // write the bytes of the string to an ArrayBuffer
-                var ab = new ArrayBuffer(byteString.length);
-                var ia = new Uint8Array(ab);
-                for (var i = 0; i < byteString.length; i++) {
+                let ab = new ArrayBuffer(byteString.length);
+                let ia = new Uint8Array(ab);
+                for (let i = 0; i < byteString.length; i++) {
                     ia[i] = byteString.charCodeAt(i);
                 }
 
                 // write the ArrayBuffer to a blob, and you're done
-                var bb = new Blob([ab]);
-                return bb;
+                return new Blob([ab]);
             }
         },
         created() {
             this.online = navigator.onLine;
             // TODO check S3 for files to download
-            // this.$setStorageDriver(localforage.INDEXEDDB);
             this.downloadResource([
                 "https://s2.q4cdn.com/235752014/files/doc_downloads/test.pdf",
                 "https://www.act.org/content/dam/act/unsecured/documents/Preparing-for-the-ACT.pdf",

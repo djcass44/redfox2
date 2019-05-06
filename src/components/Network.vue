@@ -24,12 +24,10 @@ export default {
     },
     created() {
         let that = this;
-        ping('https://google.com').then(r => {
+        // TODO change this to a URL that can always be reached
+        ping('https://google.com').then(() => {
             console.log("Established connection to google, we must have internet!");
-            if(navigator.onLine)
-                that.online = true;
-            else
-                that.online = false;
+            that.online = navigator.onLine;
             setTimeout(function() {
                 that.loading = false;
             }, 300);

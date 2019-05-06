@@ -45,6 +45,7 @@ export default {
         }
     },
     methods: {
+      // TODO use vue-router
         showList() {
             this.state = 0;
         },
